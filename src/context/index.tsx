@@ -1,14 +1,16 @@
 import { createContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { userDetailProps } from "../types/types";
+import { addDoc, collection } from "firebase/firestore";
+import { auth, db } from "../services/firebase";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 
 type AppProviderProps = {
   handleSubmit: (value: any) => void;
   handleChange: (e: any) => void;
   page: number;
   formdata: userDetailProps;
-   user: userDetailProps | null;
-  
+  user: userDetailProps | null;
 };
 
 const AppContext = createContext<AppProviderProps>({
@@ -24,7 +26,7 @@ const AppContext = createContext<AppProviderProps>({
     latitude: 0,
     longitude: 0,
   },
- user: null,
+  user: null,
 });
 
 const AppProvider = ({ children }: any) => {
@@ -43,21 +45,22 @@ const AppProvider = ({ children }: any) => {
   //creating state to manage the display of every component
   const [page, setPage] = useState<number>(0);
   //user state
-  const [user, setUser] = useState<userDetailProps | null>(null)
+  const [user, setUser] = useState<userDetailProps | null>(null);
 
   useEffect(() => {
-    const userDetail = localStorage.getItem("userDetails")
-    if(userDetail){
-      const details = JSON.parse(userDetail)
-       setUser(details);
-       console.log(details)
-    }
-  }, [])
+    // const userDetail = localStorage.getItem("userDetails")
+    // if(userDetail){
+    //   const details = JSON.parse(userDetail)
+    //    setUser(details);
+    //    console.log(details)
+    // }
+  }, []);
 
   const navigate = useNavigate();
 
-  //onSubmit functionality if the checkbox is checked get the cordinates of the user and add it to the formdata object.
-  const submitForm = () => {
+  //submit function: password auth from firebase
+  function submitForm() {
+  //checks if the checkbox is clicked , if yes it update the formdata intialstate else setformdata to the initialState;
     if (formdata.isChecked === true) {
       navigator.geolocation.getCurrentPosition((position: any) => {
         setFormData({
@@ -66,9 +69,26 @@ const AppProvider = ({ children }: any) => {
           longitude: position.coords.longitude,
         });
       });
-      localStorage.setItem("userDetails", JSON.stringify(formdata));
+    } else {
+     setFormData(formdata);
     }
-  };
+    //then create user and save the user in the users collection.
+    createUserWithEmailAndPassword(auth, formdata.email, formdata.password)
+      .then(async () => {
+        const res = await addDoc(collection(db, "users"), {
+          name: formdata.name,
+          email: formdata.email,
+          password: formdata.password,
+          latitude: formdata.latitude,
+          longitude: formdata.longitude,
+          isChecked: formdata.isChecked,
+        });
+        const docId = res.id;
+        console.log(docId);
+        navigate('/signin');
+      })
+      .catch((err) => console.log(err));
+  }
 
   // handleCHange function
   const handleChange = (e: any) => {
@@ -78,7 +98,6 @@ const AppProvider = ({ children }: any) => {
       [name]: type === "checkbox" ? checked : value,
     });
   };
-
 
   const handleSubmit = (value: any) => {
     switch (value) {

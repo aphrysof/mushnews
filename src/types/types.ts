@@ -7,4 +7,7 @@ export type userDetailProps = {
     latitude: number;
     longitude: number;
 }
-
+export type userAuthentication = {
+    email: string;
+    password: string;
+}
