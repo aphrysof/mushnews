@@ -1,6 +1,8 @@
-type FirstProps = {};
+import {useContext} from 'react'
+import { AppContext } from '../../context';
 
 const First = () => {
+  const {formdata, handleChange} = useContext(AppContext)
   return (
     <>
       <h1 className="text-4xl font-semibold text-[#5d3fd3] text-center">
@@ -16,6 +18,8 @@ const First = () => {
           name="name"
           className="w-full p-4 border-2 border-[#5D3FD3] rounded-md outline-[#5D3FD3] 
       text-lg caret-[#5d3fd3] text-[#6F6C90] mb-5"
+        value={formdata.name}
+        onChange = {handleChange}
           required
         />
       </div>
@@ -29,6 +33,8 @@ const First = () => {
           name="username"
           className="w-full p-4 border-2 border-[#5D3FD3] rounded-md outline-[#5D3FD3] 
       text-lg caret-[#5d3fd3] text-[#6F6C90] mb-5"
+      value = {formdata.username}
+      onChange = {handleChange}
           required
         />
       </div>

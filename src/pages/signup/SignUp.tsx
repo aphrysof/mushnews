@@ -1,6 +1,7 @@
 import { FirstStep, SecondStep, ThirdStep, Button } from "../../components";
-import { useState, useContext } from "react";
+import {  useContext } from "react";
 import { AppContext } from "../../context";
+
 
 const SignUp = () => {
   const { page, handleSubmit } = useContext(AppContext);
