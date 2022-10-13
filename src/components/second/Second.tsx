@@ -36,6 +36,7 @@ const Second = () => {
       text-lg caret-[#5d3fd3] text-[#6F6C90]"
             value={formdata.password}
             onChange={handleChange}
+            minLength = {6}
             required
           />
         </div>

@@ -1,28 +1,13 @@
 import { Button } from "../../components";
-import {useContext } from 'react'
-import { useNavigate } from "react-router-dom";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../../services/firebase";
+import { useContext } from "react";
 import { AppContext } from "../../context";
-import { collection, getDocs } from "firebase/firestore"; 
+
 
 const SignIn = () => {
-  const {formdata, handleChange} = useContext(AppContext)
-  const navigate = useNavigate();
+  const { handleLogin, handleChange, formdata } = useContext(AppContext);
 
 
-  //handleLogin functionality
-  const handleLogin = (e: any) => {
-    e.preventDefault();
 
-    signInWithEmailAndPassword(auth, formdata.email, formdata.password )
-    .then((res) => {
-      if(res) {
-       navigate("/home");
-      }
-    })
-    .catch((err) => console.log(err));
-  };
   return (
     <form className="mx-w-full" onSubmit={handleLogin}>
       <div className="w-2/5 shadow-[0_2px_8px_0_rgba(99,99,99,0.2)] my-6 mx-auto p-6 grid gap-2 md:my-28 ">
@@ -38,8 +23,8 @@ const SignIn = () => {
             name="email"
             className="w-full p-4 border-2 border-[#5D3FD3] rounded-md outline-[#5D3FD3] 
       text-lg caret-[#5d3fd3] text-[#6F6C90] mb-5"
-            value = {formdata.email}
-            onChange = {handleChange}
+            value={formdata.email}
+            onChange={handleChange}
             required
           />
         </div>
@@ -52,8 +37,8 @@ const SignIn = () => {
             name="password"
             className="w-full p-4 border-2 border-[#5D3FD3] rounded-md outline-[#5D3FD3] 
       text-lg caret-[#5d3fd3] text-[#6F6C90] mb-5"
-            value = {formdata.password}
-            onChange = {handleChange}
+            value={formdata.password}
+            onChange={handleChange}
             required
           />
         </div>

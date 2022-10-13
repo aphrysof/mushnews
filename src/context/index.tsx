@@ -1,13 +1,17 @@
 import { createContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { userDetailProps } from "../types/types";
-import { addDoc, collection } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 import { auth, db } from "../services/firebase";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
 
 type AppProviderProps = {
   handleSubmit: (value: any) => void;
   handleChange: (e: any) => void;
+  handleLogin: (e: any) => void;
   page: number;
   formdata: userDetailProps;
   user: userDetailProps | null;
@@ -16,6 +20,7 @@ type AppProviderProps = {
 const AppContext = createContext<AppProviderProps>({
   handleSubmit: () => {},
   handleChange: () => {},
+  handleLogin: () => {},
   page: 0,
   formdata: {
     name: "",
@@ -60,45 +65,57 @@ const AppProvider = ({ children }: any) => {
 
   //submit function: password auth from firebase
   function submitForm() {
-  //checks if the checkbox is clicked , if yes it update the formdata intialstate else setformdata to the initialState;
-    if (formdata.isChecked === true) {
-      navigator.geolocation.getCurrentPosition((position: any) => {
-        setFormData({
-          ...formdata,
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        });
-      });
-    } else {
-     setFormData(formdata);
-    }
+    //checks if the checkbox is clicked , if yes it updates the formdata intialstate else setformdata to the initialState;
+   
     //then create user and save the user in the users collection.
-    createUserWithEmailAndPassword(auth, formdata.email, formdata.password)
-      .then(async () => {
-        const res = await addDoc(collection(db, "users"), {
-          name: formdata.name,
-          email: formdata.email,
-          password: formdata.password,
-          latitude: formdata.latitude,
-          longitude: formdata.longitude,
-          isChecked: formdata.isChecked,
-        });
-        const docId = res.id;
-        console.log(docId);
-        navigate('/signin');
+   if(formdata.password.length > 5){
+     createUserWithEmailAndPassword(auth, formdata.email, formdata.password)
+      .then(async (userCredential) => {
+        const user = userCredential.user.uid;
+        await setDoc(doc(db, "users", user), formdata);
+       navigate('/signin');
       })
       .catch((err) => console.log(err));
+   }else {
+    console.log('password not strong');
+   }
   }
 
   // handleCHange function
   const handleChange = (e: any) => {
-    const { name, type, value, checked } = e.target;
-    setFormData({
+    const { name, type, value, checked, } = e.target;
+    
+    if(type === "checkbox" && checked){
+        navigator.geolocation.getCurrentPosition((position: any) => {
+         const latitude  = position.coords.latitude;
+    const longitude = position.coords.longitude;
+        setFormData({
+          ...formdata,
+          latitude: latitude,
+          longitude: longitude,
+          isChecked: true
+        });
+         console.log(position.coords)
+      }, error => {console.log(error)});
+    }else {
+        setFormData({
       ...formdata,
-      [name]: type === "checkbox" ? checked : value,
+     [name]: value,
+     isChecked: false
     });
+    }
   };
 
+  //handleLogin function
+  const handleLogin = (e: any) => {
+    e.preventDefault();
+
+    signInWithEmailAndPassword(auth, formdata.email, formdata.password)
+      .then(async () => {})
+      .catch((err) => console.log(err));
+  };
+
+  //handlesubmit function
   const handleSubmit = (value: any) => {
     switch (value) {
       case "signup":
@@ -123,6 +140,7 @@ const AppProvider = ({ children }: any) => {
         handleChange,
         formdata,
         user,
+        handleLogin,
       }}
     >
       {children}

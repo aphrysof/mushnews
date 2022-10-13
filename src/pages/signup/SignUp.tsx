@@ -1,4 +1,4 @@
-import { FirstStep, SecondStep, ThirdStep, Button } from "../../components";
+import { FirstStep, SecondStep, Button } from "../../components";
 import {  useContext } from "react";
 import { AppContext } from "../../context";
 
@@ -13,8 +13,6 @@ const SignUp = () => {
         return <FirstStep />;
       case 1:
         return <SecondStep />;
-      case 2:
-        return <ThirdStep />;
       default:
         return <FirstStep />;
     }
@@ -25,7 +23,7 @@ const SignUp = () => {
       <div className="w-3/5 shadow-[0_2px_8px_0_rgba(99,99,99,0.2)] my-6 mx-auto p-6 flex flex-col gap-4 md:my-16 ">
         {conditionalForms()}
         <div className="flex flex-row-reverse justify-between my-3">
-          {page === 0 || page === 1 ? (
+          {page === 0  ? (
             <Button onPress={() => handleSubmit("increment")}>Next Step</Button>
           ) : (
             <Button onPress={() => handleSubmit("submit")}>Submit</Button>
