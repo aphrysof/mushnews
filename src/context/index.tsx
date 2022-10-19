@@ -17,8 +17,8 @@ type AppProviderProps = {
   page: number;
   formdata: userDetailProps;
   user: userDetailProps;
-  isAuthenticated: boolean
-  location: []
+  isAuthenticated: boolean;
+
 };
 
 const AppContext = createContext<AppProviderProps>({
@@ -32,8 +32,6 @@ const AppContext = createContext<AppProviderProps>({
     email: "",
     password: "",
     isChecked: false,
-    latitude: 0,
-    longitude: 0,
   },
   user: {
     name: "",
@@ -41,11 +39,9 @@ const AppContext = createContext<AppProviderProps>({
     email: "",
     password: "",
     isChecked: false,
-    latitude: 0,
-    longitude: 0,
   },
   isAuthenticated: false,
-  location: []
+
 });
 
 const AppProvider = ({ children }: any) => {
@@ -56,26 +52,21 @@ const AppProvider = ({ children }: any) => {
     email: "",
     password: "",
     isChecked: false,
-    latitude: 0,
-    longitude: 0,
   };
   //setting state for the formdata
   const [formdata, setFormData] = useState(data);
   //creating state to manage the display of every component
   const [page, setPage] = useState<number>(0);
   //user state
-  const [user, setUser] = useState<userDetailProps>({} as userDetailProps)
-
-   const [location, setLocation] = useState<any>([])
- 
+  const [user, setUser] = useState<userDetailProps>({} as userDetailProps);
 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
   useEffect(() => {
     const userDetails = localStorage.getItem("userData");
-    if(userDetails){
-      const details = JSON.parse(userDetails)
-       setUser(details);
+    if (userDetails) {
+      const details = JSON.parse(userDetails);
+      setUser(details);
     }
   }, []);
 
@@ -83,42 +74,23 @@ const AppProvider = ({ children }: any) => {
 
   //submit function: password auth from firebase
   function submitForm() {
-   if(formdata.password.length > 5){
-     createUserWithEmailAndPassword(auth, formdata.email, formdata.password)
-      .then(async (userCredential) => {
-        const user = userCredential.user.uid;
-        await setDoc(doc(db, "users", user), formdata);
-        localStorage.setItem("user", JSON.stringify(formdata))
-       navigate('signin');
-      })
-      .catch((err) => console.log(err));
-   }else {
-    console.log('password not strong');
-   }
+    if (formdata.password.length > 5) {
+      createUserWithEmailAndPassword(auth, formdata.email, formdata.password)
+        .then(async (userCredential) => {
+          const user = userCredential.user.uid;
+          await setDoc(doc(db, "users", user), formdata);
+          navigate("/signin");
+        })
+        .catch((err) => console.log(err));
+    } else {
+      console.log("password not strong");
+    }
   }
 
   // handleCHange function
   const handleChange = (e: any) => {
-    const { name, type, value, checked, } = e.target;
-    
-    if(type === "checkbox" && checked){
-        navigator.geolocation.getCurrentPosition((position: any) => {
-         const latitude  = position.coords.latitude;
-        const longitude = position.coords.longitude;
-        setFormData({
-          ...formdata,
-          latitude: latitude,
-          longitude: longitude,
-          isChecked: true
-        });
-      }, error => {console.log(error)});
-    }else {
-        setFormData({
-      ...formdata,
-     [name]: value,
-     isChecked: false
-    });
-    }
+    const { name, type, value, checked } = e.target;
+    setFormData({ ...formdata, [name]: type === "checkbox" ? checked : value });
   };
 
   //handleLogin function
@@ -126,26 +98,37 @@ const AppProvider = ({ children }: any) => {
     e.preventDefault();
     signInWithEmailAndPassword(auth, formdata.email, formdata.password)
       .then(() => {
-        onAuthStateChanged(auth, async(user) => {
-          if(user) {
-            const snapshot = await getDoc(doc(db, `users/${user.uid}`))
+        onAuthStateChanged(auth, async (user) => {
+          if (user) {
+            const snapshot = await getDoc(doc(db, `users/${user.uid}`));
             console.log(snapshot.data(), user.uid);
-            localStorage.setItem('userData', JSON.stringify(snapshot.data()));
+            localStorage.setItem("userData", JSON.stringify(snapshot.data()));
             setIsAuthenticated(true);
-            navigate('home');
-          }else {
-            return;
+            navigate("home");
+          } else {
+            return user;
           }
-        })
-      }).then(() => {
-        navigator.geolocation.getCurrentPosition((position: any) => {
-         const latitude  = position.coords.latitude;
-        const longitude = position.coords.longitude;
-          axios.get(`https://revgeocode.search.hereapi.com/v1/revgeocode?at=${latitude}%2C${longitude}&lang=en-US&apiKey=${process.env.REACT_APP_API_KEY}`)
-          .then((res) => {
-            setLocation(res.data.items);
-          });
-      }, error => {console.log(error)});
+        });
+      })
+      .then(function () {
+        if (user.isChecked === true) {
+          navigator.geolocation.getCurrentPosition(
+            (position: any) => {
+              const latitude = position.coords.latitude;
+              const longitude = position.coords.longitude;
+              axios
+                .get(
+                  `https://revgeocode.search.hereapi.com/v1/revgeocode?at=${latitude}%2C${longitude}&lang=en-US&apiKey=${process.env.REACT_APP_API_KEY}`
+                )
+                .then((res) => {
+                 localStorage.setItem('location', JSON.stringify(res.data.items))
+                });
+            },
+            (error) => {
+              console.log(error);
+            }
+          );
+        }
       })
       .catch((err) => console.log(err));
   };
@@ -177,7 +160,6 @@ const AppProvider = ({ children }: any) => {
         user,
         handleLogin,
         isAuthenticated,
-        location
       }}
     >
       {children}
