@@ -1,12 +1,14 @@
 import { createContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { userDetailProps } from "../types/types";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, db } from "../services/firebase";
 import {
   createUserWithEmailAndPassword,
+  onAuthStateChanged,
   signInWithEmailAndPassword,
 } from "firebase/auth";
+import axios from "axios";
 
 type AppProviderProps = {
   handleSubmit: (value: any) => void;
@@ -14,7 +16,9 @@ type AppProviderProps = {
   handleLogin: (e: any) => void;
   page: number;
   formdata: userDetailProps;
-  user: userDetailProps | null;
+  user: userDetailProps;
+  isAuthenticated: boolean
+  location: []
 };
 
 const AppContext = createContext<AppProviderProps>({
@@ -31,7 +35,17 @@ const AppContext = createContext<AppProviderProps>({
     latitude: 0,
     longitude: 0,
   },
-  user: null,
+  user: {
+    name: "",
+    username: "",
+    email: "",
+    password: "",
+    isChecked: false,
+    latitude: 0,
+    longitude: 0,
+  },
+  isAuthenticated: false,
+  location: []
 });
 
 const AppProvider = ({ children }: any) => {
@@ -50,30 +64,32 @@ const AppProvider = ({ children }: any) => {
   //creating state to manage the display of every component
   const [page, setPage] = useState<number>(0);
   //user state
-  const [user, setUser] = useState<userDetailProps | null>(null);
+  const [user, setUser] = useState<userDetailProps>({} as userDetailProps)
+
+   const [location, setLocation] = useState<any>([])
+ 
+
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
   useEffect(() => {
-    // const userDetail = localStorage.getItem("userDetails")
-    // if(userDetail){
-    //   const details = JSON.parse(userDetail)
-    //    setUser(details);
-    //    console.log(details)
-    // }
+    const userDetails = localStorage.getItem("userData");
+    if(userDetails){
+      const details = JSON.parse(userDetails)
+       setUser(details);
+    }
   }, []);
 
   const navigate = useNavigate();
 
   //submit function: password auth from firebase
   function submitForm() {
-    //checks if the checkbox is clicked , if yes it updates the formdata intialstate else setformdata to the initialState;
-   
-    //then create user and save the user in the users collection.
    if(formdata.password.length > 5){
      createUserWithEmailAndPassword(auth, formdata.email, formdata.password)
       .then(async (userCredential) => {
         const user = userCredential.user.uid;
         await setDoc(doc(db, "users", user), formdata);
-       navigate('/signin');
+        localStorage.setItem("user", JSON.stringify(formdata))
+       navigate('signin');
       })
       .catch((err) => console.log(err));
    }else {
@@ -88,14 +104,13 @@ const AppProvider = ({ children }: any) => {
     if(type === "checkbox" && checked){
         navigator.geolocation.getCurrentPosition((position: any) => {
          const latitude  = position.coords.latitude;
-    const longitude = position.coords.longitude;
+        const longitude = position.coords.longitude;
         setFormData({
           ...formdata,
           latitude: latitude,
           longitude: longitude,
           isChecked: true
         });
-         console.log(position.coords)
       }, error => {console.log(error)});
     }else {
         setFormData({
@@ -109,9 +124,29 @@ const AppProvider = ({ children }: any) => {
   //handleLogin function
   const handleLogin = (e: any) => {
     e.preventDefault();
-
     signInWithEmailAndPassword(auth, formdata.email, formdata.password)
-      .then(async () => {})
+      .then(() => {
+        onAuthStateChanged(auth, async(user) => {
+          if(user) {
+            const snapshot = await getDoc(doc(db, `users/${user.uid}`))
+            console.log(snapshot.data(), user.uid);
+            localStorage.setItem('userData', JSON.stringify(snapshot.data()));
+            setIsAuthenticated(true);
+            navigate('home');
+          }else {
+            return;
+          }
+        })
+      }).then(() => {
+        navigator.geolocation.getCurrentPosition((position: any) => {
+         const latitude  = position.coords.latitude;
+        const longitude = position.coords.longitude;
+          axios.get(`https://revgeocode.search.hereapi.com/v1/revgeocode?at=${latitude}%2C${longitude}&lang=en-US&apiKey=${process.env.REACT_APP_API_KEY}`)
+          .then((res) => {
+            setLocation(res.data.items);
+          });
+      }, error => {console.log(error)});
+      })
       .catch((err) => console.log(err));
   };
 
@@ -141,6 +176,8 @@ const AppProvider = ({ children }: any) => {
         formdata,
         user,
         handleLogin,
+        isAuthenticated,
+        location
       }}
     >
       {children}

@@ -1,16 +1,20 @@
 import axios from "axios";
-import { useEffect } from "react";
+import { useContext, useEffect, useState } from "react";
+import { AppContext } from "../../context";
+
 
 const Home = () => {
-  useEffect(() => {
-    axios
-      .get(
-        `https://revgeocode.search.hereapi.com/v1/revgeocode?at=-4.006384%2C39.5807202&lang=en-US&apiKey=${process.env.REACT_APP_API_KEY}`
-      )
-      .then((res) => console.log(res.data))
-      .catch((err) => console.log(err));
-  }, []);
-  return <div>Home</div>;
+
+  const {user, isAuthenticated, location} = useContext(AppContext)
+  
+  return <div>
+    <p>{user.username}</p>
+    <div>
+      {location.map((element: any) => (
+        <p>{element.address.label}</p>
+      ))}
+    </div>
+  </div>;
 };
 
 export default Home;
